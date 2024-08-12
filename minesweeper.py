@@ -107,9 +107,7 @@ class Sentence():
         """
         mines = set()
         if self.count == len(self.cells):
-            for cell in self.cells:
-                mines.add(cell)
-        print(mines)
+            mines = mines.union(self.cells)
         return mines
 
     def known_safes(self):
@@ -118,10 +116,7 @@ class Sentence():
         """
         safes = set()
         if self.count == 0:
-            for cell in self.cells:
-                safes.add(cell)
-        print(safes)
-
+            safes = safes.union(self.cells)
         return safes
 
     def mark_mine(self, cell):
@@ -129,22 +124,27 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
+        known_mines = self.known_mines()
+
         if cell not in self.cells:
             return
-        if cell in self.known_mines:
-            self.cells.remove(cell)
+        known_mines.add(cell)
+        self.cells.remove(cell)
+
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
+        known_safes = self.known_safes()
 
         if cell not in self.cells:
             return
-        if cell in self.known_safes:
-            self.cells.remove(cell)
-        
+        known_safes.add(cell)
+        self.cells.remove(cell)
+
+
     def neighbours(self, cell):
         neighbour_cells = set()
         for i in range(cell[0] - 1, cell[0] + 2):
@@ -157,13 +157,10 @@ class Sentence():
                     neighbour_cells.add((i, j))
         return neighbour_cells
     
-    
-
 class MinesweeperAI():
     """
     Minesweeper game player
     """
-
     def __init__(self, height=8, width=8):
 
         # Set initial height and width
@@ -176,6 +173,7 @@ class MinesweeperAI():
         # Keep track of cells known to be safe or mines
         self.mines = set()
         self.safes = set()
+
 
         # List of sentences about the game known to be true
         self.knowledge = []
@@ -218,31 +216,36 @@ class MinesweeperAI():
         # mark the cell as a safe cell, updating any sentences that contain the cell as well.
         self.mark_safe(cell)
         # add a new sentence to the AI’s knowledge base, based on the value of cell and count, to indicate that count of the cell’s neighbors are mines. Be sure to only include cells whose state is still undetermined in the sentence.
-        to_add_cells = set()
-        neighbour_cells = neighbours(cell)
-        for neighbour_cell in neighbour_cells:
-            if neighbour_cell not in self.safes:
-                to_add_cells.add(cell)
-
+        neighbour_cells = self.neighbours(cell)
+        # for neighbour_cell in neighbour_cells:
+        #     if neighbour_cell not in self.safes and neighbour_cell not in self.mines and neighbour_cell not in self.moves_made:
+        #         to_add_cells.add(cell)
         # If, based on any of the sentences in self.knowledge, new cells can be marked as safe or as mines, then the function should do so.
+        new_sentence = Sentence(neighbour_cells, count)
+        self.knowledge.append(new_sentence)
+        if count == 0:
+            for neighbour_cell in neighbour_cells:
+                self.mark_safe(neighbour_cell)
+        if count == len(neighbour_cells):
+            for neighbour_cell in neighbour_cells:
+                self.mark_mine(neighbour_cell)
 
-        self.knowledge.append(Sentence(to_add_cells, count))
+
+
         # If, based on any of the sentences in self.knowledge, new sentences can be inferred (using the subset method described in the Background), then those sentences should be added to the knowledge base as well
-
-        for sentence in self.knowledge:
-            
-
-
-
-
-
-
-
-
-
-
-
-
+        for i in range(0, len(self.knowledge)):
+            for j in range(0, len(self.knowledge)):
+                if i == j:
+                    continue
+                else:
+                    current_sentence = self.knowledge[i]
+                    next_sentence = self.knowledge[j]
+                    if current_sentence.count > next_sentence.count:
+                        try:
+                            current_sentence.cells.difference(next_sentence.cells)
+                            current_sentence.count -= next_sentence.count
+                        except IndexError:
+                            continue
 
     def make_safe_move(self):
         """
