@@ -106,9 +106,10 @@ class Sentence():
         Returns the set of all cells in self.cells known to be mines.
         """
         mines = set()
-        for cell in self.cells:
-            if self.mark_mine(cell):
+        if self.count == len(self.cells):
+            for cell in self.cells:
                 mines.add(cell)
+        print(mines)
         return mines
 
     def known_safes(self):
@@ -116,9 +117,11 @@ class Sentence():
         Returns the set of all cells in self.cells known to be safe.
         """
         safes = set()
-        for cell in self.cells:
-            if self.mark_safe(cell):
+        if self.count == 0:
+            for cell in self.cells:
                 safes.add(cell)
+        print(safes)
+
         return safes
 
     def mark_mine(self, cell):
@@ -126,27 +129,35 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        cells_copy = self.cells
-        count_copy = 0
         if cell not in self.cells:
             return
-
+        if cell in self.known_mines:
+            self.cells.remove(cell)
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        cells_copy = self.cells
+
         if cell not in self.cells:
             return
-        for cell in cells_copy:
-            if self.count == 0:
-                cells_copy.remove(cell)
-        self.cells -= cells_copy
-       
-
-
+        if cell in self.known_safes:
+            self.cells.remove(cell)
+        
+    def neighbours(self, cell):
+        neighbour_cells = set()
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                # Ignore the cell itself
+                if (i, j) == cell:
+                    continue
+                # Update count if cell in bounds and is mine
+                if 0 <= i < 8 and 0 <= j < 8:
+                    neighbour_cells.add((i, j))
+        return neighbour_cells
+    
+    
 
 class MinesweeperAI():
     """
@@ -202,7 +213,7 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
+        pass
 
     def make_safe_move(self):
         """
@@ -213,7 +224,9 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+        for cell in self.safes:
+            if cell not in self.moves_made:
+                return cell
 
     def make_random_move(self):
         """
@@ -222,4 +235,10 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+        available_moves = []
+        for sentence in self.knowledge:
+            for cell in sentence.cells:
+                if cell not in self.moves_made and cell not in self.mines:
+                    available_moves.append(cell)
+        return random.choice(available_moves)
+        
