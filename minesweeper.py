@@ -218,11 +218,28 @@ class MinesweeperAI():
         # mark the cell as a safe cell, updating any sentences that contain the cell as well.
         self.mark_safe(cell)
         # add a new sentence to the AI’s knowledge base, based on the value of cell and count, to indicate that count of the cell’s neighbors are mines. Be sure to only include cells whose state is still undetermined in the sentence.
-
+        to_add_cells = set()
+        neighbour_cells = neighbours(cell)
+        for neighbour_cell in neighbour_cells:
+            if neighbour_cell not in self.safes:
+                to_add_cells.add(cell)
 
         # If, based on any of the sentences in self.knowledge, new cells can be marked as safe or as mines, then the function should do so.
 
+        self.knowledge.append(Sentence(to_add_cells, count))
         # If, based on any of the sentences in self.knowledge, new sentences can be inferred (using the subset method described in the Background), then those sentences should be added to the knowledge base as well
+
+        for sentence in self.knowledge:
+            
+
+
+
+
+
+
+
+
+
 
 
 
@@ -262,3 +279,14 @@ class MinesweeperAI():
         except IndexError:
             return None
   
+    def neighbours(self, cell):
+        neighbour_cells = set()
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                # Ignore the cell itself
+                if (i, j) == cell:
+                    continue
+                # Update count if cell in bounds and is mine
+                if 0 <= i < 8 and 0 <= j < 8:
+                    neighbour_cells.add((i, j))
+        return neighbour_cells
