@@ -213,7 +213,19 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        pass
+        # mark the cell as one of the moves made in the game.
+        self.moves_made.add(cell)
+        # mark the cell as a safe cell, updating any sentences that contain the cell as well.
+        self.mark_safe(cell)
+        # add a new sentence to the AI’s knowledge base, based on the value of cell and count, to indicate that count of the cell’s neighbors are mines. Be sure to only include cells whose state is still undetermined in the sentence.
+
+
+        # If, based on any of the sentences in self.knowledge, new cells can be marked as safe or as mines, then the function should do so.
+
+        # If, based on any of the sentences in self.knowledge, new sentences can be inferred (using the subset method described in the Background), then those sentences should be added to the knowledge base as well
+
+
+
 
     def make_safe_move(self):
         """
@@ -224,9 +236,12 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
+        # return a move from self.safes that is not in moved made
         for cell in self.safes:
             if cell not in self.moves_made:
                 return cell
+        # If no safe move can be guaranteed, the function should return None.
+        return None
 
     def make_random_move(self):
         """
@@ -235,10 +250,15 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
+        # create a list with moves that are available and not mines
         available_moves = []
         for sentence in self.knowledge:
             for cell in sentence.cells:
                 if cell not in self.moves_made and cell not in self.mines:
                     available_moves.append(cell)
-        return random.choice(available_moves)
-        
+        # If no such moves are possible, the function should return None
+        try:
+            return random.choice(available_moves)
+        except IndexError:
+            return None
+  
