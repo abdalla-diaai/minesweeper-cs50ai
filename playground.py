@@ -1,18 +1,10 @@
 import random
-board = []
-for i in range(8):
-    row = []
-    for j in range(8):
-        row.append(False)
-    board.append(row)
-# print(board)
-
+from minesweeper import *
 
 def neighbours(cell):
     neighbour_cells = set()
     for i in range(cell[0] - 1, cell[0] + 2):
         for j in range(cell[1] - 1, cell[1] + 2):
-            print(i, j)
             # Ignore the cell itself
             if (i, j) == cell:
                 continue
@@ -22,5 +14,6 @@ def neighbours(cell):
     return neighbour_cells
 
 
-cells = neighbours((3,3))
-print(random.choice(list(cells)))
+print(neighbours((0, 4
+                  )))
+

@@ -2,7 +2,7 @@ import itertools
 import random
 
 
-class Minesweeper():
+class Minesweeper:
     """
     Minesweeper game representation
     """
@@ -13,6 +13,7 @@ class Minesweeper():
         self.height = height
         self.width = width
         self.mines = set()
+        print(self.mines)
 
         # Initialize an empty field with no mines
         self.board = []
@@ -84,7 +85,7 @@ class Minesweeper():
         return self.mines_found == self.mines
 
 
-class Sentence():
+class Sentence:
     """
     Logical statement about a Minesweeper game
     A sentence consists of a set of board cells,
@@ -107,7 +108,7 @@ class Sentence():
         """
         mines = set()
         if self.count == len(self.cells):
-            mines = mines.union(self.cells)
+            mines = self.cells
         return mines
 
     def known_safes(self):
@@ -116,7 +117,7 @@ class Sentence():
         """
         safes = set()
         if self.count == 0:
-            safes = safes.union(self.cells)
+            safes = self.cells
         return safes
 
     def mark_mine(self, cell):
@@ -124,28 +125,20 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        known_mines = self.known_mines()
-
-        if cell not in self.cells:
-            return
-        known_mines.add(cell)
-        self.cells.remove(cell)
-
+        if cell in self.cells:
+            self.count -= 1
+            self.cells.remove(cell)
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        known_safes = self.known_safes()
-
-        if cell not in self.cells:
-            return
-        known_safes.add(cell)
-        self.cells.remove(cell)
-
+        if cell in self.cells:
+            self.cells.remove(cell)
 
     def neighbours(self, cell):
+        minesweeper = Minesweeper()
         neighbour_cells = set()
         for i in range(cell[0] - 1, cell[0] + 2):
             for j in range(cell[1] - 1, cell[1] + 2):
@@ -153,14 +146,16 @@ class Sentence():
                 if (i, j) == cell:
                     continue
                 # Update count if cell in bounds and is mine
-                if 0 <= i < 8 and 0 <= j < 8:
+                if 0 <= i < minesweeper.height and 0 <= j < minesweeper.width:
                     neighbour_cells.add((i, j))
         return neighbour_cells
-    
-class MinesweeperAI():
+
+
+class MinesweeperAI:
     """
     Minesweeper game player
     """
+
     def __init__(self, height=8, width=8):
 
         # Set initial height and width
@@ -174,7 +169,6 @@ class MinesweeperAI():
         self.mines = set()
         self.safes = set()
 
-
         # List of sentences about the game known to be true
         self.knowledge = []
 
@@ -186,6 +180,8 @@ class MinesweeperAI():
         self.mines.add(cell)
         for sentence in self.knowledge:
             sentence.mark_mine(cell)
+            if len(sentence.cells) == 0:
+                self.knowledge.remove(sentence)
 
     def mark_safe(self, cell):
         """
@@ -195,57 +191,86 @@ class MinesweeperAI():
         self.safes.add(cell)
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
+            if len(sentence.cells) == 0:
+                self.knowledge.remove(sentence)
 
     def add_knowledge(self, cell, count):
         """
         Called when the Minesweeper board tells us, for a given
         safe cell, how many neighboring cells have mines in them.
-
-        This function should:
-            1) mark the cell as a move that has been made
-            2) mark the cell as safe
-            3) add a new sentence to the AI's knowledge base
-               based on the value of `cell` and `count`
-            4) mark any additional cells as safe or as mines
-               if it can be concluded based on the AI's knowledge base
-            5) add any new sentences to the AI's knowledge base
-               if they can be inferred from existing knowledge
         """
+
         # mark the cell as one of the moves made in the game.
         self.moves_made.add(cell)
         # mark the cell as a safe cell, updating any sentences that contain the cell as well.
         self.mark_safe(cell)
         # add a new sentence to the AI’s knowledge base, based on the value of cell and count, to indicate that count of the cell’s neighbors are mines. Be sure to only include cells whose state is still undetermined in the sentence.
         neighbour_cells = self.neighbours(cell)
-        # for neighbour_cell in neighbour_cells:
-        #     if neighbour_cell not in self.safes and neighbour_cell not in self.mines and neighbour_cell not in self.moves_made:
-        #         to_add_cells.add(cell)
-        # If, based on any of the sentences in self.knowledge, new cells can be marked as safe or as mines, then the function should do so.
+        
         new_sentence = Sentence(neighbour_cells, count)
-        self.knowledge.append(new_sentence)
-        if count == 0:
-            for neighbour_cell in neighbour_cells:
-                self.mark_safe(neighbour_cell)
-        if count == len(neighbour_cells):
-            for neighbour_cell in neighbour_cells:
-                self.mark_mine(neighbour_cell)
+        if new_sentence.count == 0:
+            self.safes.update(new_sentence.known_safes())
+            
+        if new_sentence.count == len(new_sentence.cells):
+            self.mines.update(new_sentence.known_mines())
+            
 
+        # # mark mines and safes
+        for single_cell in new_sentence.cells.copy():
+            if single_cell in self.mines:
+                self.mark_mine(single_cell)
+            elif single_cell in self.safes:
+                self.mark_safe(single_cell)
+        if new_sentence not in self.knowledge and len(new_sentence.cells) != 0:
+            self.knowledge.append(new_sentence)
 
-
-        # If, based on any of the sentences in self.knowledge, new sentences can be inferred (using the subset method described in the Background), then those sentences should be added to the knowledge base as well
+        # create new knowledge
+        new_knowledge = []
         for i in range(0, len(self.knowledge)):
-            for j in range(0, len(self.knowledge)):
-                if i == j:
-                    continue
-                else:
-                    current_sentence = self.knowledge[i]
-                    next_sentence = self.knowledge[j]
-                    if current_sentence.count > next_sentence.count:
-                        try:
-                            current_sentence.cells.difference(next_sentence.cells)
-                            current_sentence.count -= next_sentence.count
-                        except IndexError:
-                            continue
+            try:
+                for j in range(0, len(self.knowledge)):
+                    if i == j:
+                        continue
+                    else:
+                        current_sentence = self.knowledge[i]
+                        next_sentence = self.knowledge[j]
+                        if current_sentence.cells.issubset(next_sentence.cells):
+                            new_cells = next_sentence.cells.difference(
+                                current_sentence.cells
+                            )
+                            new_count = next_sentence.count - current_sentence.count
+                            if len(new_cells) > 0 and new_count >= 0:
+                                updated_sentence = Sentence(new_cells, new_count)
+                                # If, based on any of the sentences in self.knowledge, new cells can be marked as safe or as mines, then the function should do so.
+                                if new_count == len(new_cells):
+                                    self.mines.update(updated_sentence.known_mines())
+                                if new_count == 0:
+                                    self.safes.update(updated_sentence.known_safes())
+                                for single_cell in updated_sentence.cells.copy():
+                                    if single_cell in self.safes:
+                                        self.mark_safe(single_cell)
+                                    if single_cell in self.mines:
+                                        self.mark_mine(single_cell)
+                                if updated_sentence not in self.knowledge and updated_sentence not in new_knowledge and len(updated_sentence.cells) != 0:
+                                    new_knowledge.append(updated_sentence)
+            except IndexError:
+                j -= 1
+        for sentence in new_knowledge:
+            if sentence not in self.knowledge and len(sentence.cells) != 0:
+                self.knowledge.append(sentence)
+        for i in range(0, len(self.knowledge)):
+            print(f"{i}: {self.knowledge[i]}")
+        # check knowledge again
+        for sentence in self.knowledge:
+            if sentence.count == 0:
+                self.safes.update(sentence.known_safes())
+            if sentence.count == len(sentence.cells):
+                self.mines.update(sentence.known_mines())
+
+        print(f"mines: {self.mines}")
+        print(f"safes: {self.safes}")
+
+
 
     def make_safe_move(self):
         """
@@ -281,8 +306,9 @@ class MinesweeperAI():
             return random.choice(available_moves)
         except IndexError:
             return None
-  
+
     def neighbours(self, cell):
+        minesweeper = Minesweeper()
         neighbour_cells = set()
         for i in range(cell[0] - 1, cell[0] + 2):
             for j in range(cell[1] - 1, cell[1] + 2):
@@ -290,6 +316,10 @@ class MinesweeperAI():
                 if (i, j) == cell:
                     continue
                 # Update count if cell in bounds and is mine
-                if 0 <= i < 8 and 0 <= j < 8:
+                if 0 <= i < minesweeper.height and 0 <= j < minesweeper.width:
                     neighbour_cells.add((i, j))
         return neighbour_cells
+
+
+
+    
